@@ -1,140 +1,193 @@
 # agent-trail
 
-*A local-first CLI that joins AI coding agent session traces to the git commits, pull requests, and outcomes they produced — so you can see cost-per-outcome, retry patterns, and abandonment signals per run, not just per PR.*
+A local CLI that connects Claude Code session transcripts to the git commits and pull requests they produced. See what each AI session actually cost, what it shipped, and whether the code stuck.
 
----
+## The Problem
 
-## The problem it solves
+AI coding agents write detailed telemetry to disk — prompts, tool calls, token spend, retries, working directory. Git tracks everything on the other side — commits, PRs, merge history, reverts.
 
-AI coding agents (Claude Code, Cursor, Aider, Devin) produce a rich semantic trail per session: prompts, tool calls, retries, token spend, duration, eventual diff. Open-source capture tools exist for each (`ccusage` for Claude Code, Cursor's Analytics API, Aider's analytics log, Langfuse integrations for most of them).
+These two data sources are never joined. A $2.80 Claude Code session and the PR that got reverted 36 hours later exist in completely separate systems. There is no way to ask: _were the expensive, messy sessions the ones that produced the reverted PRs?_
 
-Git has the other half: commits, PRs, merge/revert history, CI status, linked issues.
+`agent-trail` builds that join locally, from telemetry that already exists on the machine.
 
-**Nothing joins the two.** You can see that a Claude Code session burned $2.80 across 9 prompts. You can separately see that a PR merged at 3:47pm got reverted 36 hours later. But you cannot ask: *did the expensive, messy sessions produce the reverted PRs?* Or: *when Cursor takes one prompt, does the code stick; when it takes nine, does it get rolled back?* That join is the missing data atom for every interesting question about AI-assisted development.
+## Ideal Users
 
-`agent-trail` is a small, local, batch tool that builds that join on your own machine, from the telemetry your agents already write to disk.
+- **Individual developers** who want per-feature AI spend numbers: how many prompts, how much it cost, did the code merge cleanly.
 
-## Who this is for
+- **Tech leads** evaluating AI tools who need cost-per-merged-outcome, not cost-per-seat.
 
-- **Individual developers** who want honest per-feature numbers on their AI spend: *"that refactor I shipped last Thursday actually cost me $6.40 and 22 prompts — was it worth it?"*
-- **Tech leads** running AI tool evaluations who need cost-per-merged-outcome, not cost-per-seat.
-- **Engineering-analytics vendors and their product engineers** who want to prototype features that depend on session ↔ PR joins (see the [applied example](#applied-example-workweave-product-engineering-sample) below).
+- **Engineering analytics teams** prototyping features that depend on a session ↔ PR ↔ outcome join.
 
-## What it does
+## What It Does
 
-1. Reads AI agent session transcripts from your local filesystem (Claude Code JSONL first; Aider planned next; Cursor later).
-2. Extracts: prompt count, tool-call count, retry/iteration signals, token usage, duration, working directory.
-3. Joins each session to git commits whose author-time falls inside the session window in the session's working directory.
-4. Enriches commits to PRs via `gh pr list --search <sha>`, capturing merge status, review state, and revert detection.
-5. Persists everything in a local SQLite DB.
-6. Renders a single-page static HTML dashboard: session list, a **cost-per-merged-line** headline, and expandable prompt-trail drawers per session.
+1. Reads Claude Code session transcripts from `~/.claude/projects` (JSONL format).
 
-No cloud, no auth, no telemetry leaves your machine.
+2. Extracts prompt count, tool-call count, retry signals, token usage, and cost per session.
 
-## How you use it
+3. Matches each session to git commits whose author timestamp falls within the session window.
 
-Three CLI commands form the whole loop:
+4. Looks up each commit's pull request via the GitHub CLI, capturing merge status and revert detection.
 
-```bash
-agent-trail ingest             # parse local JSONL, join to git, enrich with PRs → SQLite
-agent-trail dashboard --open   # render dashboard.html from SQLite and open it
-agent-trail demo seed          # (optional) drop in three canonical fixture sessions
-```
+5. Persists everything to a local SQLite database.
 
-The two usage modes:
+6. Renders a static HTML dashboard with a cost-per-merged-line headline, per-session cost breakdown, and expandable commit and PR details.
 
-- **One-shot demo / work sample.** Run `demo seed` → `ingest` → `dashboard --open`. The resulting `dashboard.html` is a standalone file you can email, drop in a Notion page, or screen-share.
-- **Ongoing personal use.** Put `agent-trail ingest` on a nightly cron (or run it when you want to check a session). The SQLite DB grows over time; each `dashboard` render reflects everything ingested so far. Point at your real Claude Code dir: `agent-trail ingest --claude-dir ~/.claude/projects --repo /path/to/your/repo`.
+No data leaves the machine. No cloud. No auth beyond what `gh` already manages.
 
-### Where the analytics live
+## Quick Start
 
-The dashboard is a **single static HTML file** rendered from a Handlebars template. Expandable sections are CSS-only — no JavaScript framework, no build step, no local server. Double-click the file, it opens in the browser.
-
-This is a deliberate v1 choice. Static HTML is shareable (attach to a PR description, a job application, a Slack message) and costs almost nothing to build. The tradeoff: no interactive filtering, no date-range picker, no live updates. If you want those, a small local web server (Hono + HTMX, or an Express server rendering the same templates) is the v2 upgrade — same data, richer interaction.
-
-## Demo flow (90 seconds)
+**Prerequisites:** Node 20+, [GitHub CLI](https://cli.github.com) authenticated, Claude Code installed and used at least once.
 
 ```bash
-agent-trail demo seed
-agent-trail ingest
-agent-trail dashboard --open
+
+git  clone <repo>
+
+cd  agent-trail
+
+npm  install
+
+npm  run  build
+
+npm  link
+
+
+
+agent-trail  --help
+
 ```
 
-The seeded demo shows three deliberately distinguishable runs:
+### Run Against Real Data
 
-1. **Clean one-shot.** 1 prompt, 1 tool call, 3k tokens, $0.04, merged, clean.
-2. **Messy iteration.** 9 prompts, 22 tool calls, 3 retries, 48k tokens, $2.80, merged → reverted 36h later.
-3. **Human takeover.** 3 prompts, abandoned mid-session, manual commits complete the work, merged clean.
+```bash
 
-All three ship a PR that looks broadly similar in aggregate tools. The session layer is what separates them.
+agent-trail  ingest  --claude-dir  ~/.claude/projects  --repo  /path/to/repo
+
+agent-trail  dashboard  --open
+
+```
+
+### Try The Demo
+
+```bash
+
+agent-trail  demo  seed  # loads three pre-built fixture sessions
+
+agent-trail  ingest
+
+agent-trail  dashboard  --open
+
+```
+
+The demo seeds three scenarios designed to show different outcomes on sessions that look similar from the outside:
+
+| Session | Prompts | Cost | Outcome |
+
+|---------|---------|------|---------|
+
+| Clean one-shot | 1 | $0.04 | Merged, clean |
+
+| Messy iteration | 9 | $2.80 | Merged → reverted 36h later |
+
+| Human takeover | 3 | $0.18 | Abandoned, manual commits finish the work |
+
+## CLI Reference
+
+```
+
+agent-trail ingest [options]
+
+--claude-dir <path> Claude projects directory (default: ~/.claude/projects)
+
+--repo <path> Git repository path (default: .)
+
+--since <date> Only ingest sessions after this date
+
+--db <path> SQLite database path (default: ~/.agent-trail/db.sqlite)
+
+
+
+agent-trail dashboard [options]
+
+--open Open in browser after rendering
+
+--out <path> Output file (default: dashboard.html)
+
+--db <path> SQLite database path (default: ~/.agent-trail/db.sqlite)
+
+
+
+agent-trail demo seed Load canonical fixture sessions
+
+agent-trail demo clean Remove fixture sessions
+
+```
 
 ## Architecture
 
 ```
-~/.claude/projects/**/*.jsonl    ─┐
-                                  ├──► session table (SQLite)
-git log --since/--until           ─┤
-                                  ├──► session_commit join table
-gh pr list --search <sha>         ─┤
-                                  ├──► pr table
-(optional) Sentry / PagerDuty     ─┘          │
-                                              ▼
-                                     Handlebars-rendered dashboard.html
+
+~/.claude/projects/**/*.jsonl ──► parse sessions
+
+│
+
+git log --since/--until
+
+│
+
+gh pr list --search <sha>
+
+│
+
+SQLite (local)
+
+│
+
+dashboard.html (static)
+
 ```
 
-One command pipeline: `agent-trail ingest && agent-trail dashboard`.
+Three tables: `session`, `session_commit`, `pr`. The join between them is the core of the tool.
 
-## Setup
+## Dashboard
 
-Prerequisites: Node 20+, `gh` CLI authenticated (`gh auth status`), Claude Code installed and used at least once.
+The output is a single static HTML file — no server, no JavaScript framework, no build step. Open it in a browser, attach it to a PR, or drop it in a shared drive.
 
-```bash
-git clone <repo>
-cd agent-trail
-npm install
-npm run build     # compiles TS; or skip and use tsx
-npm link          # makes `agent-trail` available on your PATH
-agent-trail --help
-```
+The headline metric is **cost per merged line**: total session spend divided by lines of code that landed in merged, non-reverted PRs.
 
-During development, use `npm run dev -- <args>` to run via `tsx` without compiling.
+## Attribution Model
 
-## Scope discipline (what's deliberately out)
+Sessions are matched to commits by author timestamp: commits whose `git log` author time falls within the session's start and end time, in the same working directory. This is a heuristic — it holds well for single-developer workflows and breaks down when multiple sessions overlap or commits are made outside Claude Code. Exact attribution via file-path matching is planned for v2.
 
-- **Live / streaming capture.** Batch only. Claude Code's `SessionEnd` hook would enable real-time ingestion; deferred to v2 because the join story doesn't need it.
-- **Rebuilding telemetry capture.** `ccusage`, Langfuse, and `TechNickAI/claude_telemetry` already solve capture. This tool studies their parsers, doesn't replace them.
-- **Multi-agent support in v1.** Claude Code only. Aider is the v2 candidate (it already writes analytics logs); Cursor is v3 (Enterprise-only Analytics API). Doing Claude Code *well* beats doing three agents *thinly*.
-- **Team rollups, auth, multi-tenancy, cloud.** Single-user, local-only. Productization is out of scope on purpose — this is a tool, not a platform.
-- **LLM-as-judge quality scoring of prompts.** Tempting, but raw counts tell the story. Adding an LLM judge pre-maturely muddies the argument; deferred to v2.
-- **Rich interactive UI.** Static HTML in v1. A local web server is a v2 upgrade, not a v1 feature.
+## Limitations
 
-## Roadmap (v2 and beyond)
+- **Claude Code only** in v1. Aider and Cursor are planned.
 
-- **Aider ingester.** Aider writes analytics logs directly; small parser, same join logic.
-- **Cursor ingester** via the Enterprise Analytics API for teams that have it.
-- **Real-time capture** via Claude Code's `SessionEnd` hook.
-- **Revert / incident correlation.** Extend the `pr` table with revert detection from git history; optional Sentry / PagerDuty webhook ingesters to attach incidents to sessions.
-- **Local web UI.** Swap the static HTML for a tiny Hono + HTMX server with date-range filtering and per-repo views.
-- **Agent comparison view.** When multiple agents are ingested, show cost-per-outcome side-by-side per task type.
-- **Prompt-Quality Index.** LLM-judge the prompts in a session trail for specificity and context; correlate prompt quality with merge / revert outcomes.
+- **Single-user, local only.** No team aggregation, no cloud sync.
 
-## Applied example: WorkWeave product-engineering sample
+- **Batch ingestion.** Sessions are processed after the fact, not captured live.
 
-This repo doubles as a product-engineering work sample for [WorkWeave](https://workweave.dev) (YC W25; engineering analytics for AI-era teams — **not** W&B Weave).
+- **Heuristic attribution.** Time-window matching, not exact file-level provenance.
 
-The product argument: WorkWeave measures AI adoption at the **PR boundary** — session counts, lines-accepted, spend-over-time. Their Risk Radar, Agent Router, and cost-per-outcome roadmap all implicitly depend on a **session ↔ PR ↔ outcome join** that does not exist in their pipeline today. `agent-trail` is the smallest possible prototype of that join: ~500–700 lines of TypeScript, local-only, one agent, three canonical demo scenarios. It proves the data atom is recoverable from telemetry agents already write and exposes exactly the signal WorkWeave's next three features need.
+- **Undocumented JSONL schema.** Claude Code's session format is not officially documented and changes between versions. The parser handles the current shape and validates with Zod; schema drift will surface as parse errors with line numbers.
 
-If you are at WorkWeave: the v2 roadmap above is roughly a quarter of product roadmap you get for free once this join lands in your ingestion pipeline. Happy to talk through it.
+## Roadmap
 
-## Prior art and credits
+- Aider ingester (writes analytics logs natively)
 
-- **Claude Code** — session JSONL format and Hooks system.
-- **[ccusage](https://github.com/ryoppippi/ccusage)** — reference implementation for parsing local Claude Code JSONL; this tool's parser is learned from theirs, not vendored. Also TypeScript, so the closest idiomatic reference for this project's code style.
-- **[Langfuse Claude Code integration](https://langfuse.com/integrations/other/claude-code)** — proof semantic capture is solved upstream; frees this tool to focus on the join.
-- **[TechNickAI/claude_telemetry](https://github.com/TechNickAI/claude_telemetry)** — OpenTelemetry wrapper for Claude Code; the path to real-time capture if v2 ever needs it.
+- Cursor ingester via Enterprise Analytics API
 
-## Honest caveats
+- Real-time capture via Claude Code's `SessionEnd` hook
 
-- Session-to-commit attribution is **heuristic** (time-window match in the session's working directory). v2 will use Claude Code's explicit file-write tool-call events for exact attribution. The demo scenarios are constructed so the heuristic holds; the weakness is surfaced in the dashboard itself.
-- Claude Code's JSONL schema is undocumented at field level and shifts between versions. The parser handles today's shape; productionization would need versioned schemas.
-- This is a research prototype. The dashboard is functional and intentionally un-styled — the argument is the data, not the pixels.
+- Revert and incident correlation (Sentry / PagerDuty webhooks)
+
+- Local web UI with date-range filtering (Hono + HTMX)
+
+- Agent comparison: cost-per-outcome side-by-side across tools
+
+## Credits
+
+- **[ccusage](https://github.com/ryoppippi/ccusage)** — reference implementation for parsing Claude Code JSONL
+
+- **[Langfuse Claude Code integration](https://langfuse.com/integrations/other/claude-code)** — prior art for session capture
+
+- **[TechNickAI/claude_telemetry](https://github.com/TechNickAI/claude_telemetry)** — OpenTelemetry wrapper for Claude Code

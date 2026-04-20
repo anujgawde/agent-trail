@@ -1,4 +1,6 @@
 import { program } from "commander";
+import { openDb } from "./store.js";
+import { renderDashboard } from "./dashboard.js";
 
 program
   .name("agent-trail")
@@ -24,8 +26,9 @@ program
   .option("--open", "Open the dashboard in the default browser after rendering")
   .option("--out <path>", "Output HTML file path", "dashboard.html")
   .option("--db <path>", "SQLite database path", "~/.agent-trail/db.sqlite")
-  .action((opts) => {
-    console.log("dashboard: not yet implemented", opts);
+  .action(async (opts) => {
+    const db = openDb(opts.db);
+    await renderDashboard(db, opts.out, Boolean(opts.open));
   });
 
 const demo = program

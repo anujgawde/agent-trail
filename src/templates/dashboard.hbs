@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>agent-trail</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --orange:    #E8623A;
+    --orange-lt: #FDF0EC;
+    --green:     #3DAB6E;
+    --green-lt:  #EAF7F0;
+    --red:       #D94F4F;
+    --red-lt:    #FDEAEA;
+    --blue:      #3B82F6;
+    --gray-50:   #F9FAFB;
+    --gray-100:  #F3F4F6;
+    --gray-200:  #E5E7EB;
+    --gray-400:  #9CA3AF;
+    --gray-600:  #4B5563;
+    --gray-800:  #1F2937;
+    --gray-900:  #111827;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--gray-50);
+    color: var(--gray-800);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    background: #fff;
+    border-bottom: 1px solid var(--gray-200);
+    padding: 0 32px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .topbar-logo {
+    width: 32px; height: 32px;
+    background: var(--orange);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 14px;
+  }
+  .topbar-title { font-weight: 600; font-size: 15px; color: var(--gray-900); }
+  .topbar-meta  { margin-left: auto; color: var(--gray-400); font-size: 12px; }
+
+  /* ── Page layout ── */
+  .page { max-width: 1200px; margin: 0 auto; padding: 32px 32px 64px; }
+
+  .page-header { margin-bottom: 28px; }
+  .page-header h1 { font-size: 22px; font-weight: 700; color: var(--gray-900); }
+  .page-header p  { color: var(--gray-600); margin-top: 4px; font-size: 13px; }
+
+  /* ── Headline metric ── */
+  .headline-card {
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 40px;
+  }
+  .headline-metric { flex: 0 0 auto; }
+  .headline-metric .value {
+    font-size: 52px; font-weight: 700;
+    color: var(--orange); line-height: 1;
+  }
+  .headline-metric .unit {
+    font-size: 13px; color: var(--gray-400); margin-top: 4px;
+  }
+  .headline-desc {
+    border-left: 2px solid var(--gray-200);
+    padding-left: 32px;
+    color: var(--gray-600);
+    font-size: 13px;
+    max-width: 420px;
+  }
+  .headline-desc strong { color: var(--gray-800); display: block; margin-bottom: 4px; font-size: 15px; }
+
+  /* ── Stat cards ── */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+  .stat-card {
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    padding: 20px 24px;
+  }
+  .stat-card .label { font-size: 12px; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.05em; }
+  .stat-card .val   { font-size: 28px; font-weight: 700; color: var(--gray-900); margin-top: 6px; line-height: 1; }
+  .stat-card .sub   { font-size: 12px; color: var(--gray-400); margin-top: 4px; }
+
+  /* ── Section header ── */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .section-header h2 { font-size: 15px; font-weight: 600; color: var(--gray-900); }
+
+  /* ── Sessions table ── */
+  .sessions { display: flex; flex-direction: column; gap: 8px; }
+
+  details.session {
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  details.session[open] { border-color: var(--orange); }
+
+  summary.session-row {
+    display: grid;
+    grid-template-columns: 180px 1fr 72px 64px 64px 64px 96px 120px;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+  }
+  summary.session-row::-webkit-details-marker { display: none; }
+  summary.session-row:hover { background: var(--gray-50); }
+  details.session[open] summary.session-row { background: var(--orange-lt); }
+
+  .col-date  { font-size: 12px; color: var(--gray-600); }
+  .col-cwd   { font-size: 13px; font-weight: 500; color: var(--gray-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .col-num   { font-size: 13px; color: var(--gray-800); text-align: right; }
+  .col-cost  { font-size: 13px; font-weight: 600; color: var(--gray-900); text-align: right; }
+
+  /* Badges */
+  .badge {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; white-space: nowrap;
+  }
+  .badge-merged    { background: var(--green-lt);  color: var(--green); }
+  .badge-reverted  { background: var(--red-lt);    color: var(--red);   }
+  .badge-open      { background: var(--orange-lt); color: var(--orange);}
+  .badge-abandoned { background: var(--gray-100);  color: var(--gray-600); }
+  .badge-no-pr     { background: var(--gray-100);  color: var(--gray-400); }
+
+  /* Session detail drawer */
+  .session-detail {
+    border-top: 1px solid var(--gray-200);
+    padding: 16px 20px 20px;
+    background: var(--gray-50);
+  }
+
+  /* Table headers for summary row */
+  .table-header {
+    display: grid;
+    grid-template-columns: 180px 1fr 72px 64px 64px 64px 96px 120px;
+    gap: 12px;
+    padding: 8px 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray-400);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .table-header .right { text-align: right; }
+
+  /* Commits inside drawer */
+  .commits-title { font-size: 12px; font-weight: 600; color: var(--gray-600); margin-bottom: 8px; }
+  .commits-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .commits-table th {
+    text-align: left; color: var(--gray-400); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    padding: 4px 10px 8px; font-size: 11px;
+  }
+  .commits-table td { padding: 7px 10px; border-top: 1px solid var(--gray-200); }
+  .commits-table tr:first-child td { border-top: none; }
+  .sha { font-family: "SF Mono", "Fira Mono", monospace; color: var(--blue); font-size: 11px; }
+  .lines-added   { color: var(--green); font-weight: 600; }
+  .lines-deleted { color: var(--red);   font-weight: 600; }
+  .pr-link { color: var(--orange); text-decoration: none; font-weight: 600; }
+  .pr-link:hover { text-decoration: underline; }
+
+  /* Cost bar */
+  .cost-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .cost-bar-bg   { flex: 1; height: 5px; background: var(--gray-200); border-radius: 3px; overflow: hidden; }
+  .cost-bar-fill { height: 100%; background: var(--orange); border-radius: 3px; }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 48px; color: var(--gray-400); font-size: 13px; }
+
+  /* SVG chart */
+  .chart-section { margin-bottom: 32px; }
+  .chart-card {
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    padding: 20px 24px;
+  }
+  .chart-card h3 { font-size: 13px; font-weight: 600; color: var(--gray-600); margin-bottom: 16px; }
+  svg text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">AT</div>
+  <span class="topbar-title">agent-trail</span>
+  <span class="topbar-meta">Generated {{generatedAt}}</span>
+</div>
+
+<div class="page">
+
+  <div class="page-header">
+    <h1>AI Session Outcomes</h1>
+    <p>Understand how your Claude Code sessions connect to the commits and PRs they produced.</p>
+  </div>
+
+  <!-- Headline metric -->
+  <div class="headline-card">
+    <div class="headline-metric">
+      <div class="value">{{headline.costPerMergedLine}}</div>
+      <div class="unit">cost per merged line</div>
+    </div>
+    <div class="headline-desc">
+      <strong>Cost-per-merged-line</strong>
+      Total AI session spend divided by lines of code that landed in merged PRs.
+      Lower is more efficient. Reverted PRs are excluded from the denominator.
+    </div>
+  </div>
+
+  <!-- Stat cards -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="label">Total Sessions</div>
+      <div class="val">{{headline.totalSessions}}</div>
+      <div class="sub">ingested sessions</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Total Spend</div>
+      <div class="val">{{headline.totalCost}}</div>
+      <div class="sub">across all sessions</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Merged PRs</div>
+      <div class="val" style="color: var(--green)">{{headline.mergedPrs}}</div>
+      <div class="sub">PRs that landed</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Reverted PRs</div>
+      <div class="val" style="color: var(--red)">{{headline.revertedPrs}}</div>
+      <div class="sub">PRs rolled back</div>
+    </div>
+  </div>
+
+  <!-- Cost-per-session bar chart -->
+  {{#if chart.bars}}
+  <div class="chart-section">
+    <div class="chart-card">
+      <h3>Cost per session</h3>
+      <svg width="100%" height="120" viewBox="0 0 {{chart.width}} 120" preserveAspectRatio="none">
+        {{#each chart.bars}}
+        <rect
+          x="{{this.x}}" y="{{this.y}}"
+          width="{{this.w}}" height="{{this.h}}"
+          rx="3" fill="#E8623A" opacity="0.85"
+        />
+        {{/each}}
+      </svg>
+    </div>
+  </div>
+  {{/if}}
+
+  <!-- Sessions list -->
+  <div class="section-header">
+    <h2>Sessions</h2>
+  </div>
+
+  <div class="table-header">
+    <span>Date</span>
+    <span>Project</span>
+    <span class="right">Prompts</span>
+    <span class="right">Tools</span>
+    <span class="right">Retries</span>
+    <span class="right">Cost</span>
+    <span></span>
+    <span>Outcome</span>
+  </div>
+
+  {{#if sessions}}
+  <div class="sessions">
+    {{#each sessions}}
+    <details class="session">
+      <summary class="session-row">
+        <span class="col-date">{{this.started_at_fmt}}</span>
+        <span class="col-cwd">{{this.project}}</span>
+        <span class="col-num">{{this.prompt_count}}</span>
+        <span class="col-num">{{this.tool_call_count}}</span>
+        <span class="col-num">{{this.retry_count}}</span>
+        <span class="col-cost">{{this.cost_fmt}}</span>
+        <div class="cost-bar-wrap">
+          <div class="cost-bar-bg"><div class="cost-bar-fill" style="width: {{this.cost_pct}}%"></div></div>
+        </div>
+        <span>
+          {{#if this.abandoned}}
+            <span class="badge badge-abandoned">Abandoned</span>
+          {{else if this.outcome_reverted}}
+            <span class="badge badge-reverted">Reverted</span>
+          {{else if this.outcome_merged}}
+            <span class="badge badge-merged">Merged</span>
+          {{else if this.outcome_open}}
+            <span class="badge badge-open">Open PR</span>
+          {{else}}
+            <span class="badge badge-no-pr">No PR</span>
+          {{/if}}
+        </span>
+      </summary>
+
+      <div class="session-detail">
+        <div style="display:flex; gap: 24px; margin-bottom: 14px; font-size: 12px; color: var(--gray-600);">
+          <span><strong style="color:var(--gray-800)">Session ID</strong> {{this.id}}</span>
+          <span><strong style="color:var(--gray-800)">Duration</strong> {{this.duration}}</span>
+          <span><strong style="color:var(--gray-800)">Directory</strong> {{this.cwd}}</span>
+        </div>
+
+        {{#if this.commits}}
+        <div class="commits-title">Commits ({{this.commits.length}})</div>
+        <table class="commits-table">
+          <thead>
+            <tr>
+              <th>SHA</th>
+              <th>Authored</th>
+              <th>+Lines</th>
+              <th>−Lines</th>
+              <th>PR</th>
+              <th>State</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each this.commits}}
+            <tr>
+              <td><span class="sha">{{this.sha_short}}</span></td>
+              <td style="color: var(--gray-600)">{{this.authored_fmt}}</td>
+              <td><span class="lines-added">+{{this.added_lines}}</span></td>
+              <td><span class="lines-deleted">−{{this.deleted_lines}}</span></td>
+              <td>
+                {{#if this.pr_url}}
+                  <a class="pr-link" href="{{this.pr_url}}" target="_blank">#{{this.pr_number}}</a>
+                {{else}}
+                  <span style="color: var(--gray-400)">—</span>
+                {{/if}}
+              </td>
+              <td>
+                {{#if this.reverted}}
+                  <span class="badge badge-reverted">Reverted</span>
+                {{else if this.pr_state}}
+                  {{#if (eq this.pr_state "MERGED")}}
+                    <span class="badge badge-merged">Merged</span>
+                  {{else if (eq this.pr_state "OPEN")}}
+                    <span class="badge badge-open">Open</span>
+                  {{else}}
+                    <span class="badge badge-no-pr">{{this.pr_state}}</span>
+                  {{/if}}
+                {{else}}
+                  <span style="color: var(--gray-400)">—</span>
+                {{/if}}
+              </td>
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+        {{else}}
+        <p style="color: var(--gray-400); font-size: 12px;">No commits linked to this session.</p>
+        {{/if}}
+      </div>
+    </details>
+    {{/each}}
+  </div>
+  {{else}}
+  <div class="empty">
+    No sessions found. Run <code>agent-trail ingest</code> to populate the database.
+  </div>
+  {{/if}}
+
+</div>
+</body>
+</html>
