@@ -1,6 +1,7 @@
 import { program } from "commander";
 import { openDb } from "./store.js";
 import { renderDashboard } from "./dashboard.js";
+import { seed, clean } from "./demo/seed.js";
 
 program
   .name("agent-trail")
@@ -38,16 +39,12 @@ const demo = program
 demo
   .command("seed")
   .description("Write three canonical JSONL fixture sessions for demo purposes")
-  .action(() => {
-    console.log("demo seed: not yet implemented");
-  });
+  .action(() => seed());
 
 demo
   .command("clean")
   .description("Remove seeded demo fixture sessions")
-  .action(() => {
-    console.log("demo clean: not yet implemented");
-  });
+  .action(() => clean());
 
 program
   .command("db [path]")
