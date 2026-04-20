@@ -2,6 +2,7 @@ import { program } from "commander";
 import { openDb } from "./store.js";
 import { renderDashboard } from "./dashboard.js";
 import { seed, clean } from "./demo/seed.js";
+import { runIngest } from "./ingest.js";
 
 program
   .name("agent-trail")
@@ -17,8 +18,19 @@ program
   .option("--repo <path>", "Git repository path", ".")
   .option("--since <date>", "Only ingest sessions after this date")
   .option("--db <path>", "SQLite database path", "~/.agent-trail/db.sqlite")
-  .action((opts) => {
-    console.log("ingest: not yet implemented", opts);
+  .action(async (opts) => {
+    try {
+      await runIngest({
+        claudeDir: opts.claudeDir,
+        repo: opts.repo,
+        since: opts.since,
+        db: opts.db,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      process.stderr.write(`\nError: ${msg}\n`);
+      process.exit(1);
+    }
   });
 
 program
