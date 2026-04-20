@@ -1,8 +1,9 @@
 import Database from "better-sqlite3";
-import { readFileSync } from "node:fs";
+import { readFileSync, mkdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { homedir } from "node:os";
 import type { Session } from "./jsonl-parser.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -29,7 +30,12 @@ export interface PrRow {
 
 export type Db = ReturnType<typeof openDb>;
 
-export function openDb(dbPath: string): Database.Database {
+export function openDb(rawPath: string): Database.Database {
+  const dbPath = rawPath.startsWith("~") ? join(homedir(), rawPath.slice(1)) : rawPath;
+  if (dbPath !== ":memory:") {
+    const parent = dbPath.split("/").slice(0, -1).join("/");
+    if (parent) mkdirSync(parent, { recursive: true });
+  }
   const require = createRequire(import.meta.url);
   const db = new (require("better-sqlite3"))(dbPath) as Database.Database;
 

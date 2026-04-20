@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { program } from "commander";
 import { openDb } from "./store.js";
 import { renderDashboard } from "./dashboard.js";
