@@ -32,3 +32,6 @@ Thumbs.db
 
 # Dev instructions (local only)
 CLAUDE.md
+.claude/
+.agents/
+/skills-lock.json
