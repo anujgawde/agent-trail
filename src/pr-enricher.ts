@@ -20,19 +20,33 @@ export async function checkGhAuth(): Promise<void> {
   }
 }
 
-async function fetchPrForSha(sha: string): Promise<GhPr | null> {
+async function getGithubRepo(cwd: string): Promise<string | null> {
+  try {
+    const url = (await run("git", ["-C", cwd, "remote", "get-url", "origin"])).trim();
+    // Matches both https://github.com/owner/repo.git and git@github.com:owner/repo.git
+    const m = url.match(/github\.com[/:]([^/\s]+\/[^/\s]+?)(?:\.git)?$/);
+    return m?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchPrForSha(sha: string, repo: string | null): Promise<GhPr | null> {
+  const args = [
+    "pr", "list",
+    "--search", sha,
+    "--state", "all",
+    "--json", "number,title,state,mergedAt,url",
+    "--limit", "1",
+  ];
+  if (repo) args.push("-R", repo);
+
   let output: string;
   try {
-    output = await run("gh", [
-      "pr", "list",
-      "--search", sha,
-      "--state", "all",
-      "--json", "number,title,state,mergedAt,url",
-      "--limit", "1",
-    ]);
+    output = await run("gh", args);
   } catch {
     process.stderr.write(
-      `[agent-trail] pr-enricher: gh lookup failed for ${sha}, skipping\n`,
+      `[agent-trail] pr-enricher: gh lookup failed for ${sha.slice(0, 7)}, skipping\n`,
     );
     return null;
   }
@@ -50,10 +64,12 @@ async function fetchPrForSha(sha: string): Promise<GhPr | null> {
 export async function enrichCommits(
   db: Db,
   commits: CommitRow[],
+  cwd: string,
 ): Promise<void> {
+  const repo = await getGithubRepo(cwd);
   // Process sequentially to avoid hammering the GitHub API
   for (const commit of commits) {
-    const pr = await fetchPrForSha(commit.sha);
+    const pr = await fetchPrForSha(commit.sha, repo);
     if (!pr) continue;
 
     const row: PrRow = {

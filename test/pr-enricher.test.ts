@@ -57,6 +57,7 @@ beforeEach(() => {
 
 describe("enrichCommits", () => {
   it("writes a PR row for a merged PR", async () => {
+    mockRun.mockRejectedValueOnce(new Error("not a git repo")); // getGithubRepo git remote call
     mockRun.mockResolvedValueOnce(JSON.stringify([{
       number: 42,
       title: "feat: add parser",
@@ -66,7 +67,7 @@ describe("enrichCommits", () => {
     }]));
 
     const db = seedDb();
-    await enrichCommits(db, [sampleCommit]);
+    await enrichCommits(db, [sampleCommit], "/tmp/fake-repo");
 
     const pr = getPrForSha(db, "abc123");
     expect(pr).not.toBeUndefined();
@@ -78,6 +79,7 @@ describe("enrichCommits", () => {
   });
 
   it("sets reverted=1 when PR title contains 'revert'", async () => {
+    mockRun.mockRejectedValueOnce(new Error("not a git repo")); // getGithubRepo git remote call
     mockRun.mockResolvedValueOnce(JSON.stringify([{
       number: 43,
       title: "Revert \"feat: add parser\"",
@@ -87,25 +89,27 @@ describe("enrichCommits", () => {
     }]));
 
     const db = seedDb();
-    await enrichCommits(db, [sampleCommit]);
+    await enrichCommits(db, [sampleCommit], "/tmp/fake-repo");
 
     expect(getPrForSha(db, "abc123")!.reverted).toBe(1);
   });
 
   it("skips the commit when gh returns an empty array", async () => {
+    mockRun.mockRejectedValueOnce(new Error("not a git repo")); // getGithubRepo git remote call
     mockRun.mockResolvedValueOnce(JSON.stringify([]));
 
     const db = seedDb();
-    await enrichCommits(db, [sampleCommit]);
+    await enrichCommits(db, [sampleCommit], "/tmp/fake-repo");
 
     expect(getPrForSha(db, "abc123")).toBeUndefined();
   });
 
   it("skips gracefully when gh call fails", async () => {
+    mockRun.mockRejectedValueOnce(new Error("not a git repo")); // getGithubRepo git remote call
     mockRun.mockRejectedValueOnce(new Error("gh exited with code 1: ..."));
 
     const db = seedDb();
-    await expect(enrichCommits(db, [sampleCommit])).resolves.toBeUndefined();
+    await expect(enrichCommits(db, [sampleCommit], "/tmp/fake-repo")).resolves.toBeUndefined();
     expect(getPrForSha(db, "abc123")).toBeUndefined();
   });
 });

@@ -66,6 +66,7 @@ interface SessionViewModel {
   retry_count: number;
   cost_fmt: string;
   cost_pct: number;
+  cost_raw: number;
   abandoned: boolean;
   outcome_merged: boolean;
   outcome_reverted: boolean;
@@ -78,22 +79,45 @@ interface ChartBar {
   y: number;
   w: number;
   h: number;
+  cost: string;
+  date: string;
+}
+
+interface DirectoryViewModel {
+  dirId: string;
+  cwd: string;
+  project: string;
+  sessionCount: number;
+  totalCost: string;
+  mergedPrs: number;
+  revertedPrs: number;
+  abandonedCount: number;
+  openPrs: number;
+  sessions: SessionViewModel[];
+  chart: { bars: ChartBar[]; width: number; maxCostFmt: string };
 }
 
 interface DashboardViewModel {
   generatedAt: string;
   headline: {
     costPerMergedLine: string;
+    costPerMergedLineAvailable: boolean;
     totalCost: string;
+    avgCostPerSession: string;
     totalSessions: number;
     mergedPrs: number;
     revertedPrs: number;
+    directoryCount: number;
+    totalToolCalls: number;
+    totalPrompts: number;
   };
   chart: {
     bars: ChartBar[];
     width: number;
+    maxCostFmt: string;
   };
   sessions: SessionViewModel[];
+  directories: DirectoryViewModel[];
 }
 
 // ---------------------------------------------------------------------------
@@ -155,6 +179,7 @@ function buildViewModel(db: Db): DashboardViewModel {
       tool_call_count: session.tool_call_count,
       retry_count: session.retry_count,
       cost_fmt: fmtCost(session.cost_usd),
+      cost_raw: session.cost_usd,
       cost_pct: 0, // filled in below after max is known
       abandoned: session.abandoned === 1,
       outcome_merged: sessionMerged && !sessionReverted,
@@ -171,26 +196,69 @@ function buildViewModel(db: Db): DashboardViewModel {
     vm.cost_pct = Math.round((raw / maxCost) * 100);
   }
 
-  // Build SVG bar chart data
+  // Build SVG bar chart data — only sessions with actual spend get a bar
   const chartWidth = 900;
   const chartHeight = 100;
   const barGap = 4;
-  const n = sessionVMs.length;
+  const maxSessionCost = Math.max(...sessions.map((s) => s.cost_usd), 0);
+  const sessionVMsWithCost = sessionVMs.filter((vm) => vm.cost_raw > 0);
+  const n = sessionVMsWithCost.length;
   const barW = n > 0 ? Math.max(4, Math.floor((chartWidth - barGap * (n - 1)) / n)) : 0;
-  const bars: ChartBar[] = sessionVMs.map((vm, i) => {
-    const h = Math.max(4, Math.round((vm.cost_pct / 100) * chartHeight));
-    return {
-      x: i * (barW + barGap),
-      y: chartHeight - h,
-      w: barW,
-      h,
-    };
+  const bars: ChartBar[] = sessionVMsWithCost.map((vm, i) => {
+    const h = Math.max(1, Math.round((vm.cost_raw / maxSessionCost) * chartHeight));
+    return { x: i * (barW + barGap), y: chartHeight - h, w: barW, h, cost: vm.cost_fmt, date: vm.started_at_fmt };
   });
+
+  // Group sessions by cwd → directory view models
+  const dirMap = new Map<string, SessionViewModel[]>();
+  for (const vm of sessionVMs) {
+    const arr = dirMap.get(vm.cwd) ?? [];
+    arr.push(vm);
+    dirMap.set(vm.cwd, arr);
+  }
+
+  const directories: DirectoryViewModel[] = Array.from(dirMap.entries()).map(
+    ([cwd, dirSessions], i) => {
+      const dirCostRaw = dirSessions.reduce((s, vm) => s + vm.cost_raw, 0);
+      const dirMerged = dirSessions.filter((vm) => vm.outcome_merged).length;
+      const dirReverted = dirSessions.filter((vm) => vm.outcome_reverted).length;
+      const dirAbandoned = dirSessions.filter((vm) => vm.abandoned).length;
+      const dirOpen = dirSessions.filter((vm) => vm.outcome_open).length;
+
+      const actualMaxDirCost = Math.max(...dirSessions.map((vm) => vm.cost_raw), 0);
+      const maxDirCost = Math.max(actualMaxDirCost, 0.000001);
+      const dirSessionsWithCost = dirSessions.filter((vm) => vm.cost_raw > 0);
+      const dn = dirSessionsWithCost.length;
+      // Cap bar width at 48px; bars sit in the full 900px viewBox so the chart always fills the container
+      const dBarW = Math.min(48, dn > 0 ? Math.max(4, Math.floor((chartWidth - barGap * (dn - 1)) / dn)) : 0);
+      const dirBars: ChartBar[] = dirSessionsWithCost.map((vm, j) => {
+        const h = Math.max(1, Math.round((vm.cost_raw / maxDirCost) * chartHeight));
+        return { x: j * (dBarW + barGap), y: chartHeight - h, w: dBarW, h, cost: vm.cost_fmt, date: vm.started_at_fmt };
+      });
+
+      return {
+        dirId: `dir-${i}`,
+        cwd,
+        project: basename(cwd),
+        sessionCount: dirSessions.length,
+        totalCost: fmtCost(dirCostRaw),
+        mergedPrs: dirMerged,
+        revertedPrs: dirReverted,
+        abandonedCount: dirAbandoned,
+        openPrs: dirOpen,
+        sessions: dirSessions,
+        chart: { bars: dirBars, width: chartWidth, maxCostFmt: fmtCost(actualMaxDirCost) },
+      };
+    },
+  );
 
   const costPerMergedLine =
     totalMergedLines > 0
       ? `$${(totalCost / totalMergedLines).toFixed(4)}`
       : "—";
+
+  const totalToolCalls = sessions.reduce((s, r) => s + r.tool_call_count, 0);
+  const totalPrompts = sessions.reduce((s, r) => s + r.prompt_count, 0);
 
   return {
     generatedAt: new Date().toLocaleString("en-US", {
@@ -199,13 +267,19 @@ function buildViewModel(db: Db): DashboardViewModel {
     }),
     headline: {
       costPerMergedLine,
+      costPerMergedLineAvailable: totalMergedLines > 0,
       totalCost: fmtCost(totalCost),
+      avgCostPerSession: sessions.length > 0 ? fmtCost(totalCost / sessions.length) : "—",
       totalSessions: sessions.length,
       mergedPrs,
       revertedPrs,
+      directoryCount: directories.length,
+      totalToolCalls,
+      totalPrompts,
     },
-    chart: { bars, width: chartWidth },
+    chart: { bars, width: chartWidth, maxCostFmt: fmtCost(maxSessionCost) },
     sessions: sessionVMs,
+    directories,
   };
 }
 

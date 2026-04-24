@@ -128,7 +128,7 @@ export async function runIngest(opts: IngestOptions): Promise<void> {
     if (ghAvailable) {
       const commits = getCommitsForSession(db, session.id);
       if (commits.length > 0) {
-        await enrichCommits(db, commits);
+        await enrichCommits(db, commits, effectiveCwd);
         enriched += commits.length;
       }
     }

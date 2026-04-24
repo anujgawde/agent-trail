@@ -218,6 +218,28 @@ body {
   text-transform: uppercase;
 }
 
+/* ── Back button ── */
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--gray-500);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-family: inherit;
+  transition: background 0.12s, color 0.12s;
+}
+.back-btn:hover { background: var(--gray-100); color: var(--gray-900); }
+.back-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.topbar-sep { color: var(--gray-300); font-size: 16px; }
+.topbar-crumb { font-size: 13px; color: var(--gray-400); font-weight: 500; }
+
 /* ── Sections ── */
 .section { display: none; }
 .section.active { display: flex; flex-direction: column; flex: 1; }
@@ -363,7 +385,122 @@ body {
   margin-top: 2px;
 }
 
-.chart-svg-wrap { overflow: hidden; border-radius: 6px; }
+.chart-svg-wrap { overflow: hidden; border-radius: 6px; background: var(--gray-50); }
+.chart-axis-label { font-size: 10px; font-weight: 700; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* ── Directory grid ── */
+.dir-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 16px;
+}
+
+.dir-card {
+  background: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 20px 22px 18px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  user-select: none;
+}
+
+.dir-card:hover {
+  border-color: var(--orange);
+  box-shadow: 0 4px 16px rgba(232, 98, 58, 0.12);
+  transform: translateY(-1px);
+}
+
+.dir-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.dir-card-icon {
+  width: 32px; height: 32px;
+  background: var(--orange-lt);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  margin-bottom: 14px;
+}
+
+.dir-card-icon svg {
+  width: 16px; height: 16px;
+  stroke: var(--orange);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dir-card-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin-bottom: 3px;
+  letter-spacing: -0.2px;
+}
+
+.dir-card-path {
+  font-size: 10.5px;
+  color: var(--gray-400);
+  font-family: "SF Mono", "Fira Code", ui-monospace, monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 18px;
+}
+
+.dir-card-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--gray-100);
+}
+
+.dir-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.dir-stat-val {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--gray-900);
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.dir-stat-lbl {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dir-card-arrow {
+  width: 20px; height: 20px;
+  stroke: var(--gray-300);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+  transition: stroke 0.15s;
+}
+
+.dir-card:hover .dir-card-arrow { stroke: var(--orange); }
 
 /* ── Sessions section ── */
 .section-head {
@@ -555,8 +692,8 @@ details.srow[open] summary.srow-sum { background: var(--orange-lt); }
       Overview
     </a>
     <a class="nav-link" data-nav="sessions">
-      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
-      Sessions
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+      Directories
     </a>
   </div>
 
@@ -581,19 +718,14 @@ details.srow[open] summary.srow-sum { background: var(--orange-lt); }
   <div id="sec-overview" class="section active">
     <div class="topbar">
       <span class="topbar-title">Overview</span>
-      <div class="topbar-right">
-        <div class="filter-chip">
-          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          All sessions
-        </div>
-      </div>
     </div>
     <div class="page-body">
       <div class="page-header">
         <h1>Overview</h1>
-        <p class="page-subtitle">Understand how your Claude Code sessions connect to the commits and PRs they produced.</p>
+        <p class="page-subtitle">A summary of all Claude Code sessions — spend, outcomes, and PR attribution across every directory.</p>
       </div>
 
+      {{#if headline.costPerMergedLineAvailable}}
       <div class="headline-card">
         <div class="headline-metric">
           <div class="headline-val">{{headline.costPerMergedLine}}</div>
@@ -601,73 +733,215 @@ details.srow[open] summary.srow-sum { background: var(--orange-lt); }
         </div>
         <div class="headline-sep"></div>
         <div class="headline-copy">
-          <strong>Cost-per-merged-line</strong>
-          <p>Total AI session spend divided by lines of code that landed in merged PRs. Lower is more efficient. Reverted PRs are excluded from the denominator.</p>
+          <strong>Your efficiency score</strong>
+          <p>Total AI session spend ÷ lines of code that landed in a merged PR. A lower number means more shipped code per dollar. Reverted PRs are excluded.</p>
         </div>
       </div>
+      {{/if}}
 
       <div class="stats-row">
         <div class="stat-card" style="--card-accent: var(--orange)">
           <div class="stat-label">Total Sessions</div>
           <div class="stat-val" data-countup="{{headline.totalSessions}}" data-fmt="int">{{headline.totalSessions}}</div>
-          <div class="stat-sub">ingested sessions</div>
+          <div class="stat-sub">ingested Claude Code sessions</div>
         </div>
-        <div class="stat-card" style="--card-accent: var(--gray-300)">
+        <div class="stat-card" style="--card-accent: var(--gray-600)">
           <div class="stat-label">Total Spend</div>
           <div class="stat-val">{{headline.totalCost}}</div>
-          <div class="stat-sub">across all sessions</div>
+          <div class="stat-sub">API cost across all sessions</div>
         </div>
         <div class="stat-card" style="--card-accent: var(--green)">
           <div class="stat-label">Merged PRs</div>
           <div class="stat-val" style="color:var(--green)" data-countup="{{headline.mergedPrs}}" data-fmt="int">{{headline.mergedPrs}}</div>
-          <div class="stat-sub">PRs that landed</div>
+          <div class="stat-sub">PRs attributed to sessions</div>
         </div>
         <div class="stat-card" style="--card-accent: var(--red)">
           <div class="stat-label">Reverted PRs</div>
           <div class="stat-val" style="color:var(--red)" data-countup="{{headline.revertedPrs}}" data-fmt="int">{{headline.revertedPrs}}</div>
-          <div class="stat-sub">PRs rolled back</div>
+          <div class="stat-sub">PRs that were rolled back</div>
         </div>
       </div>
 
       {{#if chart.bars}}
       <div class="chart-card">
-        <div class="chart-head">
-          <div class="chart-title">Cost per session</div>
-          <div class="chart-desc">Relative API spend per ingested session</div>
+        <div class="chart-head" style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px">
+          <div>
+            <div class="chart-title">API spend per session</div>
+            <div class="chart-desc">Each bar is one session, ordered chronologically. Height = relative cost. Tallest bar = {{chart.maxCostFmt}}.</div>
+          </div>
         </div>
-        <div class="chart-svg-wrap">
-          <svg width="100%" height="110" viewBox="0 0 {{chart.width}} 110" preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="bar-grad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#E8623A" stop-opacity="0.9"/>
-                <stop offset="100%" stop-color="#C9502D" stop-opacity="0.7"/>
-              </linearGradient>
-            </defs>
-            {{#each chart.bars}}
-            <rect x="{{this.x}}" y="{{this.y}}" width="{{this.w}}" height="{{this.h}}" rx="3" fill="url(#bar-grad)"/>
-            {{/each}}
-          </svg>
+        <div style="display:flex; gap:8px; margin-top:12px">
+          <div style="width:32px; flex-shrink:0; display:flex; align-items:center; justify-content:center">
+            <span class="chart-axis-label" style="writing-mode:vertical-rl; transform:rotate(180deg)">Spend</span>
+          </div>
+          <div style="flex:1; min-width:0">
+            <div class="chart-svg-wrap">
+              <svg width="100%" height="110" viewBox="0 0 {{chart.width}} 110" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="bar-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#E8623A" stop-opacity="0.9"/>
+                    <stop offset="100%" stop-color="#C9502D" stop-opacity="0.7"/>
+                  </linearGradient>
+                </defs>
+                <line x1="0" y1="25" x2="{{chart.width}}" y2="25" stroke="#E5E7EB" stroke-width="1"/>
+                <line x1="0" y1="50" x2="{{chart.width}}" y2="50" stroke="#E5E7EB" stroke-width="1"/>
+                <line x1="0" y1="75" x2="{{chart.width}}" y2="75" stroke="#E5E7EB" stroke-width="1"/>
+                {{#each chart.bars}}
+                <rect x="{{this.x}}" y="{{this.y}}" width="{{this.w}}" height="{{this.h}}" rx="2" fill="url(#bar-grad)" data-bar-cost="{{this.cost}}" data-bar-date="{{this.date}}"/>
+                {{/each}}
+              </svg>
+            </div>
+            <div style="margin-top:5px">
+              <span class="chart-axis-label">Sessions (newest → oldest )</span>
+            </div>
+          </div>
         </div>
       </div>
       {{/if}}
     </div>
   </div>
 
-  <!-- ─── Sessions ─── -->
+  <!-- ─── Directory list ─── -->
   <div id="sec-sessions" class="section">
     <div class="topbar">
-      <span class="topbar-title">Sessions</span>
+      <span class="topbar-title">Directories</span>
+      <div class="topbar-right">
+        <span class="count-chip">{{headline.directoryCount}} directories</span>
+      </div>
     </div>
     <div class="page-body">
       <div class="page-header">
-        <h1>Sessions</h1>
-        <p class="page-subtitle">All ingested Claude Code sessions with commit and PR attribution.</p>
+        <h1>Directories</h1>
+        <p class="page-subtitle">Sessions grouped by working directory. Click a directory to see its sessions and detailed stats.</p>
       </div>
 
-      {{#if sessions}}
+      {{#if directories}}
+      <div class="dir-grid">
+        {{#each directories}}
+        <div class="dir-card" data-dir-nav="{{this.dirId}}">
+          <div class="dir-card-icon">
+            <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+          </div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+            <div style="min-width:0;flex:1">
+              <div class="dir-card-name">{{this.project}}</div>
+              <div class="dir-card-path">{{this.cwd}}</div>
+            </div>
+            <svg class="dir-card-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="dir-card-stats">
+            <div class="dir-stat">
+              <span class="dir-stat-val">{{this.sessionCount}}</span>
+              <span class="dir-stat-lbl">Sessions</span>
+            </div>
+            <div class="dir-stat">
+              <span class="dir-stat-val">{{this.totalCost}}</span>
+              <span class="dir-stat-lbl">Spend</span>
+            </div>
+            <div class="dir-stat">
+              <span class="dir-stat-val" style="color:var(--green)">{{this.mergedPrs}}</span>
+              <span class="dir-stat-lbl">Merged</span>
+            </div>
+            <div class="dir-stat">
+              <span class="dir-stat-val" style="color:var(--red)">{{this.revertedPrs}}</span>
+              <span class="dir-stat-lbl">Reverted</span>
+            </div>
+          </div>
+        </div>
+        {{/each}}
+      </div>
+
+      {{else}}
+      <div class="empty-state">
+        <div class="empty-icon">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+        </div>
+        No sessions found. Run <code style="background:var(--gray-100);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:12px">agent-trail ingest</code> to populate the database.
+      </div>
+      {{/if}}
+    </div>
+  </div>
+
+  <!-- ─── Directory detail pages (one per directory) ─── -->
+  {{#each directories}}
+  <div id="sec-{{this.dirId}}" class="section">
+    <div class="topbar">
+      <button class="back-btn" data-back-nav="sessions">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        Directories
+      </button>
+      <span class="topbar-sep">/</span>
+      <span class="topbar-crumb">{{this.project}}</span>
+    </div>
+    <div class="page-body">
+      <div class="page-header">
+        <h1>{{this.project}}</h1>
+        <p class="page-subtitle" style="font-family:monospace;font-size:12px">{{this.cwd}}</p>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card" style="--card-accent: var(--orange)">
+          <div class="stat-label">Sessions</div>
+          <div class="stat-val">{{this.sessionCount}}</div>
+          <div class="stat-sub">in this directory</div>
+        </div>
+        <div class="stat-card" style="--card-accent: var(--gray-600)">
+          <div class="stat-label">Total Spend</div>
+          <div class="stat-val">{{this.totalCost}}</div>
+          <div class="stat-sub">across sessions</div>
+        </div>
+        <div class="stat-card" style="--card-accent: var(--green)">
+          <div class="stat-label">Merged PRs</div>
+          <div class="stat-val" style="color:var(--green)">{{this.mergedPrs}}</div>
+          <div class="stat-sub">PRs that landed</div>
+        </div>
+        <div class="stat-card" style="--card-accent: var(--red)">
+          <div class="stat-label">Reverted PRs</div>
+          <div class="stat-val" style="color:var(--red)">{{this.revertedPrs}}</div>
+          <div class="stat-sub">PRs rolled back</div>
+        </div>
+      </div>
+
+      {{#if this.chart.bars}}
+      <div class="chart-card">
+        <div class="chart-head" style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px">
+          <div>
+            <div class="chart-title">API spend per session</div>
+            <div class="chart-desc">Each bar is one session in this directory, ordered chronologically. Tallest bar = {{this.chart.maxCostFmt}}.</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:12px">
+          <div style="width:32px; flex-shrink:0; display:flex; align-items:center; justify-content:center">
+            <span class="chart-axis-label" style="writing-mode:vertical-rl; transform:rotate(180deg)">Spend</span>
+          </div>
+          <div style="flex:1; min-width:0">
+            <div class="chart-svg-wrap">
+              <svg width="100%" height="110" viewBox="0 0 {{this.chart.width}} 110" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="bar-grad-{{this.dirId}}" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#E8623A" stop-opacity="0.9"/>
+                    <stop offset="100%" stop-color="#C9502D" stop-opacity="0.7"/>
+                  </linearGradient>
+                </defs>
+                <line x1="0" y1="25" x2="{{this.chart.width}}" y2="25" stroke="#E5E7EB" stroke-width="1"/>
+                <line x1="0" y1="50" x2="{{this.chart.width}}" y2="50" stroke="#E5E7EB" stroke-width="1"/>
+                <line x1="0" y1="75" x2="{{this.chart.width}}" y2="75" stroke="#E5E7EB" stroke-width="1"/>
+                {{#each this.chart.bars}}
+                <rect x="{{this.x}}" y="{{this.y}}" width="{{this.w}}" height="{{this.h}}" rx="2" fill="url(#bar-grad-{{../dirId}})" data-bar-cost="{{this.cost}}" data-bar-date="{{this.date}}"/>
+                {{/each}}
+              </svg>
+            </div>
+            <div style="margin-top:5px">
+              <span class="chart-axis-label">Sessions (newest → oldest )</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      {{/if}}
+
       <div class="section-head">
-        <span class="section-head-title">All sessions</span>
-        <span class="count-chip">{{headline.totalSessions}}</span>
+        <span class="section-head-title">Sessions</span>
+        <span class="count-chip">{{this.sessionCount}}</span>
       </div>
 
       <div class="table-card">
@@ -682,7 +956,7 @@ details.srow[open] summary.srow-sum { background: var(--orange-lt); }
           <span class="th">Outcome</span>
         </div>
 
-        {{#each sessions}}
+        {{#each this.sessions}}
         <details class="srow">
           <summary class="srow-sum">
             <span class="c-date">{{this.started_at_fmt}}</span>
@@ -764,17 +1038,9 @@ details.srow[open] summary.srow-sum { background: var(--orange-lt); }
         </details>
         {{/each}}
       </div>
-
-      {{else}}
-      <div class="empty-state">
-        <div class="empty-icon">
-          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
-        </div>
-        No sessions found. Run <code style="background:var(--gray-100);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:12px">agent-trail ingest</code> to populate the database.
-      </div>
-      {{/if}}
     </div>
   </div>
+  {{/each}}
 
   <!-- ─── AI Usage ─── -->
   <div id="sec-ai" class="section">
@@ -785,45 +1051,65 @@ details.srow[open] summary.srow-sum { background: var(--orange-lt); }
     <div class="page-body">
       <div class="page-header">
         <h1>AI Usage</h1>
-        <p class="page-subtitle">See how Claude Code sessions translate into shipped code.</p>
+        <p class="page-subtitle">How Claude Code is being used — prompts, tool calls, and cost per session across all directories.</p>
       </div>
 
       <div class="stats-row">
-        <div class="stat-card" style="--card-accent:var(--orange); grid-column: span 2">
-          <div class="stat-label">Cost Efficiency</div>
-          <div class="stat-val" style="color:var(--orange)">{{headline.costPerMergedLine}}</div>
-          <div class="stat-sub">per merged line — total spend ÷ merged lines (reverts excluded)</div>
+        <div class="stat-card" style="--card-accent:var(--orange)">
+          <div class="stat-label">Avg Cost / Session</div>
+          <div class="stat-val" style="color:var(--orange)">{{headline.avgCostPerSession}}</div>
+          <div class="stat-sub">mean API spend per session</div>
         </div>
-        <div class="stat-card" style="--card-accent:var(--gray-300)">
-          <div class="stat-label">Sessions</div>
-          <div class="stat-val" data-countup="{{headline.totalSessions}}" data-fmt="int">{{headline.totalSessions}}</div>
-          <div class="stat-sub">ingested</div>
-        </div>
-        <div class="stat-card" style="--card-accent:var(--gray-300)">
+        <div class="stat-card" style="--card-accent:var(--gray-600)">
           <div class="stat-label">Total Spend</div>
           <div class="stat-val">{{headline.totalCost}}</div>
-          <div class="stat-sub">USD</div>
+          <div class="stat-sub">API cost across all sessions</div>
+        </div>
+        <div class="stat-card" style="--card-accent:var(--blue)">
+          <div class="stat-label">Total Prompts</div>
+          <div class="stat-val" style="color:var(--blue)" data-countup="{{headline.totalPrompts}}" data-fmt="int">{{headline.totalPrompts}}</div>
+          <div class="stat-sub">user messages sent</div>
+        </div>
+        <div class="stat-card" style="--card-accent:var(--gray-600)">
+          <div class="stat-label">Total Tool Calls</div>
+          <div class="stat-val" data-countup="{{headline.totalToolCalls}}" data-fmt="int">{{headline.totalToolCalls}}</div>
+          <div class="stat-sub">file edits, bash runs, reads</div>
         </div>
       </div>
 
       {{#if chart.bars}}
       <div class="chart-card">
-        <div class="chart-head">
-          <div class="chart-title">Cost per session over time</div>
-          <div class="chart-desc">Relative AI session spend across all ingested sessions</div>
+        <div class="chart-head" style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px">
+          <div>
+            <div class="chart-title">API spend per session</div>
+            <div class="chart-desc">Each bar is one session, ordered chronologically. Height = cost relative to the most expensive session ({{chart.maxCostFmt}}).</div>
+          </div>
         </div>
-        <div class="chart-svg-wrap">
-          <svg width="100%" height="140" viewBox="0 0 {{chart.width}} 140" preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="bar-grad2" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="#E8623A" stop-opacity="0.85"/>
-                <stop offset="100%" stop-color="#C9502D" stop-opacity="0.6"/>
-              </linearGradient>
-            </defs>
-            {{#each chart.bars}}
-            <rect x="{{this.x}}" y="{{this.y}}" width="{{this.w}}" height="{{this.h}}" rx="3" fill="url(#bar-grad2)"/>
-            {{/each}}
-          </svg>
+        <div style="display:flex; gap:8px; margin-top:12px">
+          <div style="width:32px; flex-shrink:0; display:flex; align-items:center; justify-content:center">
+            <span class="chart-axis-label" style="writing-mode:vertical-rl; transform:rotate(180deg)">Spend</span>
+          </div>
+          <div style="flex:1; min-width:0">
+            <div class="chart-svg-wrap">
+              <svg width="100%" height="140" viewBox="0 0 {{chart.width}} 140" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="bar-grad2" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#E8623A" stop-opacity="0.85"/>
+                    <stop offset="100%" stop-color="#C9502D" stop-opacity="0.6"/>
+                  </linearGradient>
+                </defs>
+                <line x1="0" y1="35" x2="{{chart.width}}" y2="35" stroke="#E5E7EB" stroke-width="1"/>
+                <line x1="0" y1="70" x2="{{chart.width}}" y2="70" stroke="#E5E7EB" stroke-width="1"/>
+                <line x1="0" y1="105" x2="{{chart.width}}" y2="105" stroke="#E5E7EB" stroke-width="1"/>
+                {{#each chart.bars}}
+                <rect x="{{this.x}}" y="{{this.y}}" width="{{this.w}}" height="{{this.h}}" rx="2" fill="url(#bar-grad2)" data-bar-cost="{{this.cost}}" data-bar-date="{{this.date}}"/>
+                {{/each}}
+              </svg>
+            </div>
+            <div style="margin-top:5px">
+              <span class="chart-axis-label">Sessions (newest → oldest )</span>
+            </div>
+          </div>
         </div>
       </div>
       {{/if}}
@@ -832,24 +1118,55 @@ details.srow[open] summary.srow-sum { background: var(--orange-lt); }
 
 </main>
 
+<!-- Bar tooltip (shared across all charts) -->
+<div id="bar-tooltip" style="display:none; position:fixed; background:#111827; color:#fff; padding:7px 11px; border-radius:7px; font-size:12px; pointer-events:none; z-index:200; white-space:nowrap; box-shadow:0 4px 16px rgba(0,0,0,0.25)">
+  <div id="bar-tooltip-cost" style="font-weight:700; font-variant-numeric:tabular-nums"></div>
+  <div id="bar-tooltip-date" style="color:#9CA3AF; font-size:11px; margin-top:2px"></div>
+</div>
+
 <script>
 (function () {
   // ── Navigation ──
-  var links = document.querySelectorAll('.nav-link[data-nav]');
-  links.forEach(function (link) {
+  function navigate(target) {
+    document.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active'); });
+    var sec = document.getElementById('sec-' + target);
+    if (sec) {
+      sec.classList.add('active');
+      runCountUps(sec);
+      window.scrollTo(0, 0);
+    }
+
+    var links = document.querySelectorAll('.nav-link[data-nav]');
+    links.forEach(function (l) { l.classList.remove('active'); });
+    var direct = document.querySelector('.nav-link[data-nav="' + target + '"]');
+    if (direct) {
+      direct.classList.add('active');
+    } else {
+      // For directory detail sections, keep the Directories nav link active
+      var fallback = document.querySelector('.nav-link[data-nav="sessions"]');
+      if (fallback) fallback.classList.add('active');
+    }
+  }
+
+  // Sidebar nav clicks
+  document.querySelectorAll('.nav-link[data-nav]').forEach(function (link) {
     link.addEventListener('click', function (e) {
       e.preventDefault();
-      var target = this.getAttribute('data-nav');
+      navigate(this.getAttribute('data-nav'));
+    });
+  });
 
-      links.forEach(function (l) { l.classList.remove('active'); });
-      this.classList.add('active');
+  // Directory card clicks
+  document.querySelectorAll('[data-dir-nav]').forEach(function (card) {
+    card.addEventListener('click', function () {
+      navigate(this.getAttribute('data-dir-nav'));
+    });
+  });
 
-      document.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active'); });
-      var sec = document.getElementById('sec-' + target);
-      if (sec) {
-        sec.classList.add('active');
-        runCountUps(sec);
-      }
+  // Back button clicks
+  document.querySelectorAll('[data-back-nav]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      navigate(this.getAttribute('data-back-nav'));
     });
   });
 
@@ -890,6 +1207,25 @@ details.srow[open] summary.srow-sum { background: var(--orange-lt); }
       requestAnimationFrame(step);
     });
   }
+
+  // ── Bar tooltips ──
+  var tt = document.getElementById('bar-tooltip');
+  var ttCost = document.getElementById('bar-tooltip-cost');
+  var ttDate = document.getElementById('bar-tooltip-date');
+
+  document.querySelectorAll('[data-bar-cost]').forEach(function (rect) {
+    rect.style.cursor = 'crosshair';
+    rect.addEventListener('mousemove', function (e) {
+      ttCost.textContent = rect.getAttribute('data-bar-cost');
+      ttDate.textContent = rect.getAttribute('data-bar-date');
+      tt.style.display = 'block';
+      tt.style.left = (e.clientX + 14) + 'px';
+      tt.style.top = (e.clientY - 52) + 'px';
+    });
+    rect.addEventListener('mouseleave', function () {
+      tt.style.display = 'none';
+    });
+  });
 
   // Trigger on load for the visible section
   window.addEventListener('load', function () {
